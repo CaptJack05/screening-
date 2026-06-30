@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: Optional[str] = None
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/calendar/callback"
     ENCRYPTION_KEY: str = "vI9Tf43H2Bv9Zk-d8o4q_L9s1cM0G-H-J4kL3pP7qR4="
+    MAILTRAP_TOKEN: Optional[str] = None
 
     # Load from .env file if it exists
     model_config = SettingsConfigDict(
