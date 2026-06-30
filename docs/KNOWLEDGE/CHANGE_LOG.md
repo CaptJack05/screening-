@@ -16,3 +16,12 @@ This document lists a chronological audit trail of all schema modifications, arc
 *   **Details**:
     *   Created root-level `.gitignore` file to ignore environment configurations, local database files, and caches.
     *   Uploaded all 40 core project files to the `CaptJack05/screening-` repository.
+
+## [2026-06-30] Google Calendar & SMTP Email Scheduling Integration
+*   **Author**: Lead Architect / AI Assistant
+*   **Description**: Implemented recruiter calendar authorization and automated candidate assessment link emailing.
+*   **Details**:
+    *   Created `app/services/calendar.py` and `app/api/calendar.py` to handle Google Calendar OAuth2 consent, decryption of database credentials, and dynamic Meet link generation.
+    *   Added candidate mail and schedule endpoints (`/send-test`, `/schedule`) in `app/api/candidates.py`.
+    *   Updated `src/frontend/index.html` React app with settings forms, drawer mail controls, and interview booking widgets.
+    *   Created unit tests suite `app/tests/test_endpoints.py` to mock calendar Meet links and verify status code flows.
