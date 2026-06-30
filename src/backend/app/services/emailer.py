@@ -5,13 +5,61 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from sqlalchemy.orm import Session
 import uuid
+from typing import Optional, Dict, Any
+import httpx
 
 from app.database import SessionLocal
 from app.models.settings import SystemSetting
 from app.models.email_log import EmailLog
 from app.services.security import decrypt_string
+from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+def send_mailtrap_api_email(recipient_email: str, subject: str, body_html: str) -> bool:
+    """
+    Sends email via the Mailtrap HTTP API using the configured MAILTRAP_TOKEN.
+    """
+    if not settings.MAILTRAP_TOKEN:
+        return False
+        
+    # We will try both the Sandbox and Live API endpoints for maximum versatility
+    sandbox_url = "https://sandbox.api.mailtrap.io/api/send"
+    headers = {
+        "Authorization": f"Bearer {settings.MAILTRAP_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    
+    # Mailtrap sandbox allows sandbox address
+    payload = {
+        "from": {"email": "recruiting@visl.ai", "name": "Visl AI Labs Recruiting"},
+        "to": [{"email": recipient_email}],
+        "subject": subject,
+        "html": body_html,
+        "category": "Candidate Screening"
+    }
+    
+    try:
+        # Try Sandbox endpoint
+        response = httpx.post(sandbox_url, headers=headers, json=payload, timeout=15.0)
+        if response.status_code in [200, 201]:
+            logger.info(f"Email sent successfully via Mailtrap Sandbox API to {recipient_email}")
+            return True
+            
+        # Try Live endpoint with demo domain fallback
+        live_url = "https://send.api.mailtrap.io/api/send"
+        payload["from"]["email"] = "hello@demomailtrap.co"
+        response_live = httpx.post(live_url, headers=headers, json=payload, timeout=15.0)
+        if response_live.status_code in [200, 201]:
+            logger.info(f"Email sent successfully via Mailtrap Live API to {recipient_email}")
+            return True
+            
+        logger.warning(f"Mailtrap API sandbox returned status {response.status_code}: {response.text}")
+        logger.warning(f"Mailtrap API live returned status {response_live.status_code}: {response_live.text}")
+        return False
+    except Exception as e:
+        logger.error(f"Failed to send email via Mailtrap API: {str(e)}")
+        return False
 
 def get_smtp_config() -> Optional[Dict[str, Any]]:
     """
@@ -38,10 +86,9 @@ def send_smtp_email(
     email_type: str
 ) -> bool:
     """
-    Sends an email using the stored recruiter SMTP settings.
+    Sends an email using either Mailtrap API direct dispatch or SMTP settings.
     Logs success or failure to the email_logs audit table.
     """
-    config = get_smtp_config()
     db = SessionLocal()
     
     # 1. Initialize Log Record
@@ -55,8 +102,20 @@ def send_smtp_email(
         status="FAILED"
     )
     
+    # Prioritize direct Mailtrap API dispatch if token is active
+    if settings.MAILTRAP_TOKEN:
+        logger.info("Attempting direct email delivery via Mailtrap HTTP API...")
+        success = send_mailtrap_api_email(recipient_email, subject, body_html)
+        if success:
+            email_log.status = "SENT"
+            db.add(email_log)
+            db.commit()
+            db.close()
+            return True
+            
+    config = get_smtp_config()
     if not config:
-        logger.error("No SMTP credentials configured. Skipping email delivery.")
+        logger.error("No SMTP credentials or Mailtrap API tokens configured. Skipping email delivery.")
         email_log.status = "FAILED"
         db.add(email_log)
         db.commit()
