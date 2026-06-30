@@ -166,3 +166,122 @@ def delete_candidate(candidate_id: str, db: Session = Depends(get_db)):
     db.delete(candidate)
     db.commit()
     return {"message": "Candidate record successfully deleted."}
+
+from pydantic import BaseModel
+from app.services.emailer import send_smtp_email, render_test_link_email, render_interview_invite_email
+from app.services.calendar import create_interview_meet_event
+from app.models.job import Job
+
+class InterviewSchedule(BaseModel):
+    scheduled_at: str  # ISO timestamp
+
+@router.post("/{candidate_id}/send-test")
+def send_test_assessment(candidate_id: str, db: Session = Depends(get_db)):
+    """
+    Generates assessment links, emails them using SMTP configurations,
+    and updates candidate status to TEST_SENT.
+    """
+    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found.")
+
+    test_url = f"http://localhost:8000/test/{candidate.id}"
+    body_html = render_test_link_email(candidate.name, test_url)
+    
+    subject = "Visl AI Labs: Logical Aptitude & Technical Coding Assessment"
+    success = send_smtp_email(
+        candidate_id=candidate.id,
+        recipient_email=candidate.email,
+        subject=subject,
+        body_html=body_html,
+        email_type="TEST_LINK"
+    )
+    
+    if not success:
+        raise HTTPException(
+            status_code=400,
+            detail="Failed to send assessment email. Please verify SMTP server settings."
+        )
+        
+    candidate.status = "TEST_SENT"
+    db.commit()
+    
+    return {"status": "success", "message": f"Assessment email successfully sent to {candidate.email}."}
+
+@router.post("/{candidate_id}/schedule")
+def schedule_interview(candidate_id: str, schedule_in: InterviewSchedule, db: Session = Depends(get_db)):
+    """
+    Creates Google Calendar interview event, generates Google Meet link,
+    emails candidate confirmation, and updates candidate status to INTERVIEW_SCHEDULED.
+    """
+    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found.")
+        
+    job = db.query(Job).filter(Job.id == candidate.job_id).first()
+    job_title = job.title if job else "Founding AI Engineer"
+    
+    try:
+        event_id, meet_link = create_interview_meet_event(
+            candidate_name=candidate.name,
+            candidate_email=candidate.email,
+            job_title=job_title,
+            start_time_iso=schedule_in.scheduled_at
+        )
+    except ValueError as val_err:
+        raise HTTPException(status_code=400, detail=str(val_err))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Google Calendar integration error: {str(e)}")
+        
+    # Format date/time string for email readability
+    try:
+        from datetime import datetime
+        clean_time = schedule_in.scheduled_at.replace("Z", "+00:00")
+        dt_obj = datetime.fromisoformat(clean_time)
+        formatted_datetime = dt_obj.strftime("%B %d, %Y at %I:%M %p (UTC)")
+    except Exception:
+        formatted_datetime = schedule_in.scheduled_at
+        
+    body_html = render_interview_invite_email(candidate.name, formatted_datetime, meet_link)
+    
+    email_success = send_smtp_email(
+        candidate_id=candidate.id,
+        recipient_email=candidate.email,
+        subject=f"Technical Interview Confirmation: {job_title} at Visl AI Labs",
+        body_html=body_html,
+        email_type="INTERVIEW_INVITE"
+    )
+    
+    # Update SQLite Database
+    import uuid
+    from datetime import datetime as dt
+    try:
+        clean_time = schedule_in.scheduled_at.replace("Z", "+00:00")
+        scheduled_dt = dt.fromisoformat(clean_time)
+    except Exception:
+        scheduled_dt = dt.utcnow()
+        
+    # Delete older schedules for idempotency
+    db.query(Interview).filter(Interview.candidate_id == candidate.id).delete()
+    
+    interview = Interview(
+        id=str(uuid.uuid4()),
+        candidate_id=candidate.id,
+        job_id=candidate.job_id,
+        scheduled_at=scheduled_dt,
+        google_event_id=event_id,
+        meet_link=meet_link,
+        status="SCHEDULED"
+    )
+    db.add(interview)
+    
+    candidate.status = "INTERVIEW_SCHEDULED"
+    db.commit()
+    
+    return {
+        "status": "success",
+        "google_event_id": event_id,
+        "meet_link": meet_link,
+        "email_sent": email_success,
+        "message": f"Interview scheduled successfully. Meet Link: {meet_link}"
+    }
