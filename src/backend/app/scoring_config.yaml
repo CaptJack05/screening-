@@ -1,0 +1,8 @@
+# Configuration weights for Composite Candidate Screening Score
+# Total must equal 1.0 (100%)
+weights:
+  jd_relevance: 0.30
+  project_quality: 0.20
+  github_technical: 0.20
+  academic: 0.10
+  test_performance: 0.20
