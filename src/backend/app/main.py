@@ -17,6 +17,33 @@ from app.api.calendar import router as calendar_router
 async def lifespan(app: FastAPI):
     # Auto-create tables for SQLite development environment
     Base.metadata.create_all(bind=engine)
+    
+    # Seed default GTM Intern Job Description if database is empty
+    from app.database import SessionLocal
+    from app.models.job import Job
+    db = SessionLocal()
+    try:
+        exists = db.query(Job).first()
+        if not exists:
+            default_jd = Job(
+                id="default-gtm-intern-uuid",
+                title="GTM (Go-to-Market) Engineering Intern",
+                description=(
+                    "Internship opportunity for a GTM (Go-to-Market) Engineering Intern role with our team at myNachiketa.\n\n"
+                    "myNachiketa is India’s only D2C brand that develops products to bring the knowledge of Gita & Vedas to children. "
+                    "We design innovative products in the form of videos, books, games, workshops, etc. and market them through Youtube, Instagram, and Amazon.\n\n"
+                    "This internship is ideal for individuals interested in working at the intersection of technology, AI, automation, growth, and business operations. "
+                    "It offers hands-on experience in solving real-world challenges and contributing to impactful projects in a fast-paced environment."
+                )
+            )
+            db.add(default_jd)
+            db.commit()
+            print("Default Job Description for GTM Engineering Intern seeded successfully.")
+    except Exception as e:
+        print(f"Error seeding default JD: {e}")
+    finally:
+        db.close()
+        
     yield
 
 app = FastAPI(
