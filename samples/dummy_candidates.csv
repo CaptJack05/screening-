@@ -1,0 +1,3 @@
+s_no,name,email,college,branch,cgpa,best_ai_project,research_work,github,resume
+1,Alex Rivera,alex.rivera.dev@gmail.com,Stanford University,Computer Science,9.2,"Fine-tuned Llama-3 model for candidate screening chatbot using QLoRA. Built React UI.","Published paper on ML scoring optimization at NeurIPS workshop.","https://github.com/CaptJack05","https://drive.google.com/file/d/1v5O_7rK_5TzM-P72J3e5Q/view"
+2,Priya Patel,priya.patel.ai@gmail.com,MIT,AI Engineering,8.7,"Built a real-time computer vision pipeline for traffic flow optimization using YOLOv8.","None","https://github.com/CaptJack05","https://drive.google.com/file/d/1v5O_7rK_5TzM-P72J3e5Q/view"
