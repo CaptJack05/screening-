@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visl AI Labs — AI Candidate Screening Dashboard</title>
+  
+  <!-- Load Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Load Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Load React 18 & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  
+  <!-- Load Babel Standalone for in-browser JSX compilation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Lucide Icons (Script version) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+    }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #020617;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+  </style>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f5f3ff',
+              100: '#ede9fe',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+              700: '#6d28d9',
+              950: '#0c071c'
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <div id="root"></div>
+
+  <!-- React Code with Babel -->
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Icon helper component to load Lucide icons dynamically
+    function Icon({ name, className = "w-5 h-5", strokeWidth = 2 }) {
+      useEffect(() => {
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+      }, [name]);
+      return <i data-lucide={name} className={className} style={{ strokeWidth: strokeWidth }}></i>;
+    }
+
+    // MAIN APP COMPONENT
+    function App() {
+      const [activeTab, setActiveTab] = useState('pipeline'); // pipeline, upload, jobs, settings
+      const [candidates, setCandidates] = useState([]);
+      const [jobs, setJobs] = useState([]);
+      const [activeJob, setActiveJob] = useState(null);
+      const [selectedCandidate, setSelectedCandidate] = useState(null);
+      const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState(null);
+
+      // Fetch candidates and jobs on load
+      useEffect(() => {
+        fetchJobs();
+      }, []);
+
+      useEffect(() => {
+        if (activeJob) {
+          fetchCandidates(activeJob.id);
+        } else {
+          setCandidates([]);
+        }
+      }, [activeJob]);
+
+      const fetchJobs = async () => {
+        try {
+          const res = await fetch('/api/jobs');
+          if (!res.ok) throw new Error("Failed to fetch jobs");
+          const data = await res.json();
+          setJobs(data);
+          if (data.length > 0 && !activeJob) {
+            setActiveJob(data[0]);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
+
+      const fetchCandidates = async (jobId) => {
+        setLoading(true);
+        try {
+          const res = await fetch(`/api/candidates?job_id=${jobId}`);
+          if (!res.ok) throw new Error("Failed to fetch candidates");
+          const data = await res.json();
+          setCandidates(data);
+        } catch (err) {
+          setError("Error loading candidates list.");
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const handleSelectCandidate = async (id) => {
+        try {
+          const res = await fetch(`/api/candidates/${id}`);
+          if (!res.ok) throw new Error("Failed to fetch candidate details");
+          const data = await res.json();
+          setSelectedCandidate(data);
+          setDetailDrawerOpen(true);
+        } catch (err) {
+          alert("Error fetching candidate detailed analysis: " + err.message);
+        }
+      };
+
+      // Pipeline stages configuration
+      const STAGES = [
+        { key: 'UPLOADED', label: 'Uploaded' },
+        { key: 'RESUME_PROCESSED', label: 'Resume Processed' },
+        { key: 'GITHUB_ANALYZED', label: 'GitHub Analyzed' },
+        { key: 'AI_SCORED', label: 'AI Scored' },
+        { key: 'SHORTLISTED', label: 'Shortlisted' },
+        { key: 'TEST_SENT', label: 'Test Sent' },
+        { key: 'TEST_SCORED', label: 'Test Scored' },
+        { key: 'INTERVIEW_SCHEDULED', label: 'Scheduled' }
+      ];
+
+      return (
+        <div class="flex h-screen overflow-hidden bg-slate-950">
+          
+          <!-- SIDEBAR -->
+          <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between">
+            <div>
+              <div class="h-16 flex items-center px-6 border-b border-slate-800">
+                <span class="text-xl font-bold tracking-tight text-brand-500">Visl AI Labs</span>
+                <span class="ml-2 text-xs bg-brand-500/10 text-brand-500 px-2 py-0.5 rounded font-mono border border-brand-500/20">v2.0</span>
+              </div>
+              
+              <!-- NAVIGATION LINKS -->
+              <nav class="mt-6 px-4 space-y-1">
+                <button 
+                  onClick={() => setActiveTab('pipeline')}
+                  class={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${activeTab === 'pipeline' ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'}`}
+                >
+                  <Icon name="kanban" className="w-5 h-5" />
+                  Recruitment Pipeline
+                </button>
+                <button 
+                  onClick={() => setActiveTab('upload')}
+                  class={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${activeTab === 'upload' ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'}`}
+                >
+                  <Icon name="upload-cloud" className="w-5 h-5" />
+                  Upload Center
+                </button>
+                <button 
+                  onClick={() => setActiveTab('jobs')}
+                  class={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${activeTab === 'jobs' ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'}`}
+                >
+                  <Icon name="briefcase" className="w-5 h-5" />
+                  Job Descriptions
+                </button>
+                <button 
+                  onClick={() => setActiveTab('settings')}
+                  class={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${activeTab === 'settings' ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'}`}
+                >
+                  <Icon name="settings" className="w-5 h-5" />
+                  Settings & Integrations
+                </button>
+              </nav>
+            </div>
+
+            <!-- JOB CONTEXT INDICATOR -->
+            <div class="p-4 border-t border-slate-800">
+              <div class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2">Active Job Context</div>
+              {activeJob ? (
+                <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl">
+                  <div class="text-sm font-semibold truncate text-slate-200">{activeJob.title}</div>
+                  <div class="text-xs text-slate-500 mt-1 truncate">ID: {activeJob.id.substring(0, 8)}...</div>
+                </div>
+              ) : (
+                <div class="text-xs text-rose-400 p-2 bg-rose-500/10 rounded-lg border border-rose-500/20">
+                  No active Job Description. Create one in the Job Descriptions tab!
+                </div>
+              )}
+            </div>
+          </aside>
+
+          <!-- MAIN WORKSPACE CONTENT -->
+          <main class="flex-1 flex flex-col overflow-hidden bg-slate-950">
+            <header class="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-slate-900/50 backdrop-blur-md">
+              <h2 class="text-lg font-bold text-slate-200 uppercase tracking-wide">
+                {activeTab === 'pipeline' && "Recruitment Pipeline"}
+                {activeTab === 'upload' && "Upload Data & Results"}
+                {activeTab === 'jobs' && "Manage Job Descriptions"}
+                {activeTab === 'settings' && "Integrations & Setup"}
+              </h2>
+
+              <div class="flex items-center gap-4">
+                {activeTab === 'pipeline' && activeJob && (
+                  <button 
+                    onClick={() => fetchCandidates(activeJob.id)}
+                    class="p-2 text-slate-400 hover:text-slate-100 bg-slate-800 border border-slate-700 rounded-xl transition-all"
+                    title="Refresh Data"
+                  >
+                    <Icon name="refresh-cw" className="w-4 h-4" />
+                  </button>
+                )}
+                <div class="flex items-center gap-2">
+                  <div class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <span class="text-xs text-slate-400 font-medium">Dashboard Online</span>
+                </div>
+              </div>
+            </header>
+
+            <div class="flex-1 overflow-auto p-8">
+              
+              {/* TAB 1: KANBAN PIPELINE BOARD */}
+              {activeTab === 'pipeline' && (
+                <div class="h-full flex flex-col gap-6">
+                  {loading && candidates.length === 0 ? (
+                    <div class="flex-1 flex items-center justify-center">
+                      <div class="text-slate-400 animate-pulse">Loading screening pipeline data...</div>
+                    </div>
+                  ) : candidates.length === 0 ? (
+                    <div class="flex-1 flex flex-col items-center justify-center border border-dashed border-slate-800 rounded-2xl p-12 text-center bg-slate-900/20">
+                      <Icon name="users" className="w-12 h-12 text-slate-600 mb-4" />
+                      <h3 class="text-lg font-bold mb-2">No Candidates Found</h3>
+                      <p class="text-slate-400 max-w-sm mb-6">Upload a CSV/XLSX sheet of candidate responses to initialize the pipeline board.</p>
+                      <button 
+                        onClick={() => setActiveTab('upload')} 
+                        class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 rounded-xl text-sm font-semibold transition-all"
+                      >
+                        Go to Upload Center
+                      </button>
+                    </div>
+                  ) : (
+                    <div class="flex-1 flex gap-4 overflow-x-auto pb-4">
+                      {STAGES.map(stage => {
+                        const stageCandidates = candidates.filter(c => c.status === stage.key);
+                        return (
+                          <div key={stage.key} class="flex-shrink-0 w-80 bg-slate-900/50 border border-slate-800 rounded-2xl flex flex-col overflow-hidden max-h-full">
+                            <div class="px-4 py-3.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+                              <span class="text-sm font-bold text-slate-300">{stage.label}</span>
+                              <span class="text-xs bg-slate-800 px-2 py-0.5 rounded font-bold text-slate-400">
+                                {stageCandidates.length}
+                              </span>
+                            </div>
+                            <div class="flex-1 overflow-y-auto p-3 space-y-3">
+                              {stageCandidates.map(candidate => (
+                                <div 
+                                  key={candidate.id}
+                                  onClick={() => handleSelectCandidate(candidate.id)}
+                                  class="p-4 bg-slate-900 border border-slate-800 rounded-xl cursor-pointer hover:border-brand-500 hover:shadow-lg hover:shadow-brand-500/5 transition-all group"
+                                >
+                                  <div class="flex items-start justify-between mb-2">
+                                    <h4 class="font-semibold text-sm text-slate-200 group-hover:text-brand-500 truncate max-w-[80%]">
+                                      {candidate.name}
+                                    </h4>
+                                    {candidate.composite_score !== null && (
+                                      <span class="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">
+                                        {Math.round(candidate.composite_score)}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div class="text-xs text-slate-500 truncate mb-3">{candidate.college}</div>
+                                  <div class="flex items-center justify-between text-[11px] text-slate-400">
+                                    <span class="px-1.5 py-0.5 bg-slate-800 rounded text-slate-300 border border-slate-700/50">{candidate.branch}</span>
+                                    {candidate.resume_status === 'DOWNLOADED' && (
+                                      <span class="text-blue-400 flex items-center gap-1 font-medium">
+                                        <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Resume
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 2: UPLOAD CENTER */}
+              {activeTab === 'upload' && (
+                <UploadCenter onUploadSuccess={() => { fetchJobs(); if (activeJob) fetchCandidates(activeJob.id); }} jobs={jobs} activeJob={activeJob} setActiveJob={setActiveJob} />
+              )}
+
+              {/* TAB 3: JOBS CONFIGURATION */}
+              {activeTab === 'jobs' && (
+                <JobsManager jobs={jobs} onJobCreated={() => { fetchJobs(); }} />
+              )}
+
+              {/* TAB 4: SETTINGS & INTEGRATIONS */}
+              {activeTab === 'settings' && (
+                <SettingsManager />
+              )}
+
+            </div>
+          </main>
+
+          {/* CANDIDATE DETAIL DRAWER */}
+          {detailDrawerOpen && selectedCandidate && (
+            <CandidateDrawer 
+              candidate={selectedCandidate} 
+              onClose={() => setDetailDrawerOpen(false)} 
+              onShortlistUpdate={() => { fetchCandidates(activeJob.id); handleSelectCandidate(selectedCandidate.id); }} 
+            />
+          )}
+
+        </div>
+      );
+    }
+
+    // UPLOAD CENTER COMPONENT
+    function UploadCenter({ onUploadSuccess, jobs, activeJob, setActiveJob }) {
+      const [uploadType, setUploadType] = useState('candidates'); // candidates, test-results
+      const [file, setFile] = useState(null);
+      const [uploading, setUploading] = useState(false);
+      const [resultMessage, setResultMessage] = useState(null);
+
+      const handleFileChange = (e) => {
+        if (e.target.files.length > 0) {
+          setFile(e.target.files[0]);
+        }
+      };
+
+      const handleUpload = async (e) => {
+        e.preventDefault();
+        if (!file) return;
+        setUploading(true);
+        setResultMessage(null);
+
+        const formData = new FormData();
+        formData.append("file", file);
+        if (uploadType === 'candidates' && activeJob) {
+          formData.append("job_id", activeJob.id);
+        }
+
+        const endpoint = uploadType === 'candidates' ? '/api/upload/candidates' : '/api/upload/test-results';
+
+        try {
+          const res = await fetch(endpoint, {
+            method: "POST",
+            body: formData
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Upload failed");
+          setResultMessage({ success: true, text: data.message });
+          setFile(null);
+          onUploadSuccess();
+        } catch (err) {
+          setResultMessage({ success: false, text: err.message });
+        } finally {
+          setUploading(false);
+        }
+      };
+
+      return (
+        <div class="max-w-2xl mx-auto space-y-8">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+            <h3 class="text-lg font-bold mb-4">Ingest Dataset</h3>
+            <p class="text-slate-400 text-sm mb-6">Auto-detect files. Ingest recruiter spreadsheets directly into database tables.</p>
+
+            <form onSubmit={handleUpload} class="space-y-6">
+              <!-- Upload Type Toggle -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Dataset Type</label>
+                <div class="grid grid-cols-2 gap-3">
+                  <button 
+                    type="button"
+                    onClick={() => setUploadType('candidates')}
+                    class={`p-3 rounded-xl border text-sm font-semibold transition-all ${uploadType === 'candidates' ? 'bg-brand-500/10 border-brand-500 text-brand-400' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'}`}
+                  >
+                    Candidate Master Responses
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setUploadType('test-results')}
+                    class={`p-3 rounded-xl border text-sm font-semibold transition-all ${uploadType === 'test-results' ? 'bg-brand-500/10 border-brand-500 text-brand-400' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'}`}
+                  >
+                    Test Scores Sheet
+                  </button>
+                </div>
+              </div>
+
+              {/* Job selection for candidate upload */}
+              {uploadType === 'candidates' && (
+                <div>
+                  <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Evaluate Against Job Description</label>
+                  {jobs.length > 0 ? (
+                    <select 
+                      value={activeJob ? activeJob.id : ''} 
+                      onChange={(e) => setActiveJob(jobs.find(j => j.id === e.target.value))}
+                      class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-300 focus:outline-none focus:border-brand-500"
+                    >
+                      {jobs.map(j => (
+                        <option key={j.id} value={j.id}>{j.title}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div class="text-xs text-rose-400 p-2 bg-rose-500/10 rounded-lg border border-rose-500/20">
+                      No active Jobs available. Please submit a Job Description first.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <!-- File Drag Drop Zone -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Select Spreadsheet (CSV or Excel)</label>
+                <div class="border-2 border-dashed border-slate-800 rounded-2xl p-8 text-center hover:border-brand-500/50 transition-all bg-slate-950/50 relative">
+                  <input 
+                    type="file" 
+                    onChange={handleFileChange}
+                    accept=".csv, .xlsx, .xls"
+                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <Icon name="upload-cloud" className="w-10 h-10 text-slate-500 mx-auto mb-4" />
+                  <p class="text-sm font-semibold mb-1">
+                    {file ? file.name : "Drag & Drop files here, or click to browse"}
+                  </p>
+                  <p class="text-xs text-slate-500">Supports CSV, XLSX or XLS formats</p>
+                </div>
+              </div>
+
+              {/* Result Message */}
+              {resultMessage && (
+                <div class={`p-4 rounded-xl border text-sm flex gap-3 items-center ${resultMessage.success ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+                  <Icon name={resultMessage.success ? 'check-circle' : 'alert-circle'} />
+                  <span>{resultMessage.text}</span>
+                </div>
+              )}
+
+              <!-- Submit Button -->
+              <button 
+                type="submit"
+                disabled={!file || uploading}
+                class="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg transition-all"
+              >
+                {uploading ? "Ingesting dataset..." : "Upload & Parse"}
+              </button>
+
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    // JOBS MANAGER COMPONENT
+    function JobsManager({ jobs, onJobCreated }) {
+      const [title, setTitle] = useState('');
+      const [description, setDescription] = useState('');
+      const [loading, setLoading] = useState(false);
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!title || !description) return;
+        setLoading(true);
+
+        try {
+          const res = await fetch('/api/jobs', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, description })
+          });
+          if (!res.ok) throw new Error("Failed to create job");
+          setTitle('');
+          setDescription('');
+          onJobCreated();
+          alert("Job Description submitted successfully.");
+        } catch (err) {
+          alert("Error: " + err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          
+          <!-- Submit JD Form -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 h-fit">
+            <h3 class="text-lg font-bold mb-4">Submit Job Description</h3>
+            <p class="text-slate-400 text-sm mb-6">Create job evaluation contexts by pasting or submitting job descriptions.</p>
+            
+            <form onSubmit={handleSubmit} class="space-y-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Job Title</label>
+                <input 
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g. Founding AI Engineer"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-300 focus:outline-none focus:border-brand-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Job Description (JD)</label>
+                <textarea 
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Paste skills, requirements, and responsibilities details here..."
+                  rows="8"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-300 focus:outline-none focus:border-brand-500 font-sans"
+                  required
+                ></textarea>
+              </div>
+
+              <button 
+                type="submit"
+                disabled={loading}
+                class="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg transition-all"
+              >
+                {loading ? "Saving JD..." : "Create Job Context"}
+              </button>
+            </form>
+          </div>
+
+          <!-- Existing JDs List -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+            <h3 class="text-lg font-bold mb-4">Active Job Contexts ({jobs.length})</h3>
+            <div class="space-y-4 max-h-[450px] overflow-y-auto pr-2">
+              {jobs.map(j => (
+                <div key={j.id} class="p-4 bg-slate-950 border border-slate-800 rounded-xl">
+                  <h4 class="font-bold text-slate-200">{j.title}</h4>
+                  <p class="text-xs text-slate-500 mt-1">ID: {j.id}</p>
+                  <p class="text-slate-400 text-sm mt-3 line-clamp-3 leading-relaxed whitespace-pre-wrap">{j.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // SETTINGS MANAGER COMPONENT
+    function SettingsManager() {
+      // Basic state for testing settings tab health
+      return (
+        <div class="max-w-2xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <h3 class="text-lg font-bold mb-4">SMTP & Google OAuth Settings</h3>
+          <p class="text-slate-400 text-sm mb-6">Integrate your active credentials and APIs here to unlock mailers and calendar auto-scheduling.</p>
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 mb-6 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <Icon name="mail" class="text-brand-400" />
+              <div>
+                <h4 class="font-semibold text-slate-200">SMTP Server config</h4>
+                <p class="text-xs text-slate-500">Recruiter sender mail setup</p>
+              </div>
+            </div>
+            <span class="px-2 py-0.5 rounded text-xs bg-slate-800 text-slate-400 border border-slate-700">Not Configured</span>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <Icon name="calendar" class="text-brand-400" />
+              <div>
+                <h4 class="font-semibold text-slate-200">Google Calendar OAuth2</h4>
+                <p class="text-xs text-slate-500">Auto-create Google Meet links</p>
+              </div>
+            </div>
+            <span class="px-2 py-0.5 rounded text-xs bg-slate-800 text-slate-400 border border-slate-700">Disconnected</span>
+          </div>
+        </div>
+      );
+    }
+
+    // CANDIDATE DRAWER SIDE-OVER
+    function CandidateDrawer({ candidate, onClose, onShortlistUpdate }) {
+      const [shortlisting, setShortlisting] = useState(false);
+
+      const handleShortlist = async () => {
+        setShortlisting(true);
+        try {
+          const res = await fetch(`/api/candidates/${candidate.id}/shortlist`, {
+            method: "POST"
+          });
+          if (!res.ok) throw new Error("Failed to shortlist candidate");
+          onShortlistUpdate();
+        } catch (err) {
+          alert("Error: " + err.message);
+        } finally {
+          setShortlisting(false);
+        }
+      };
+
+      return (
+        <div class="fixed inset-y-0 right-0 w-[550px] bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col z-50 animate-in slide-in-from-right duration-300">
+          <!-- Drawer Header -->
+          <div class="h-16 px-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/80 backdrop-blur">
+            <div class="flex items-center gap-3">
+              <h3 class="font-bold text-lg text-slate-200 truncate max-w-[300px]">{candidate.name}</h3>
+              <span class={`px-2 py-0.5 rounded text-xs font-semibold ${candidate.status === 'SHORTLISTED' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}`}>
+                {candidate.status}
+              </span>
+            </div>
+            <button onClick={onClose} class="text-slate-400 hover:text-slate-100 p-1.5 hover:bg-slate-800 rounded-xl transition-all">
+              <Icon name="x" className="w-5 h-5" />
+            </button>
+          </div>
+
+          <!-- Drawer Body -->
+          <div class="flex-1 overflow-y-auto p-6 space-y-6">
+            <!-- Basic Details Card -->
+            <div class="p-4 bg-slate-950 border border-slate-800 rounded-xl">
+              <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Academic & Ingestion</h4>
+              <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span class="text-slate-400 block text-xs">Email</span>
+                  <span class="text-slate-200 font-medium truncate block">{candidate.email}</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block text-xs">College</span>
+                  <span class="text-slate-200 font-medium block truncate">{candidate.college}</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block text-xs">Branch</span>
+                  <span class="text-slate-200 font-medium block">{candidate.branch}</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block text-xs">CGPA</span>
+                  <span class="text-slate-200 font-bold block">{candidate.cgpa !== null ? candidate.cgpa : 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ingestion Materials -->
+            <div class="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-4">
+              <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Candidate Materials</h4>
+              {candidate.resume_drive_link && (
+                <div class="flex justify-between items-center text-sm p-2 bg-slate-900 border border-slate-800 rounded-lg">
+                  <span class="text-slate-300 font-medium truncate max-w-[70%]">Resume Drive Link</span>
+                  <a href={candidate.resume_drive_link} target="_blank" class="text-xs text-brand-400 hover:underline flex items-center gap-1">
+                    View URL <Icon name="external-link" className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              )}
+              {candidate.github_url && (
+                <div class="flex justify-between items-center text-sm p-2 bg-slate-900 border border-slate-800 rounded-lg">
+                  <span class="text-slate-300 font-medium truncate max-w-[70%]">GitHub Profile</span>
+                  <a href={candidate.github_url} target="_blank" class="text-xs text-brand-400 hover:underline flex items-center gap-1">
+                    View Profile <Icon name="external-link" className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              )}
+            </div>
+
+            <!-- AI Evaluation Summary -->
+            <div class="p-4 bg-slate-950 border border-slate-800 rounded-xl">
+              <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">AI Evaluation Status</h4>
+              {candidate.evaluation ? (
+                <div>
+                  <div class="text-2xl font-bold text-emerald-400 mb-2">{Math.round(candidate.composite_score)}/100</div>
+                  <p class="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{candidate.evaluation.jd_relevance_rationale}</p>
+                </div>
+              ) : (
+                <div class="text-sm text-slate-400">AI pipeline has not been executed on this candidate. Pasting a Job Description in the Jobs tab is required.</div>
+              )}
+            </div>
+          </div>
+
+          <!-- Drawer Footer Action Bar -->
+          <div class="h-20 px-6 border-t border-slate-800 flex items-center gap-3 bg-slate-900/90">
+            <button 
+              onClick={handleShortlist}
+              disabled={shortlisting}
+              class={`flex-1 py-3 font-semibold rounded-xl text-sm transition-all flex items-center justify-center gap-2 ${candidate.status === 'SHORTLISTED' ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700' : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/10'}`}
+            >
+              <Icon name="check" className="w-4 h-4" />
+              {candidate.status === 'SHORTLISTED' ? 'Remove from Shortlist' : 'Shortlist Candidate'}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
