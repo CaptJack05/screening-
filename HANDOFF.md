@@ -6,22 +6,26 @@ This file serves as the first point of entry for any incoming agent model or ses
 1. Set up the workspace framework, document system, and directories. (Done)
 2. Define candidate screening platform master plan specifications. (Done)
 3. Initialize a clean Git repository and upload the codebase to GitHub. (Done)
+4. Implement scheduling/mailing candidate lifecycle endpoints and connect them to the frontend dashboard. (Done)
 
 ## Sprint Summary
-Successfully established the role-based multi-agent workspace document system, initialized a root `.gitignore` file, and uploaded the entire codebase structure (FastAPI backend + React frontend) to the remote GitHub repository.
+Successfully established the role-based multi-agent workspace document system, initialized remote GitHub repository, built out SMTP candidate emailing, linked recruiter settings to Google Calendar OAuth2 scheduling, and updated the React dashboard widgets.
 
 ## Work Accomplished
 - Created initial implementation plan and received user approval.
 - Created `task.md` to track workspace setup steps.
 - Initialized all required workspace documents under `docs/`.
-- Created root-level `.gitignore` to prevent tracking of caches, environments, and dev databases.
-- Developed an automation script (`upload_to_github.py`) to handle REST API file uploads.
-- Uploaded all 40 core project files to the remote GitHub repository at **`CaptJack05/screening-`**.
+- Created root-level `.gitignore` and automation sync scripts.
+- Implemented Google Calendar integration services (`app/services/calendar.py` & `app/api/calendar.py`) to handle recruiter OAuth2 link callback and create video interview Meet events.
+- Created candidate lifecycle action routes in `app/api/candidates.py` to trigger SMTP test invitations and scheduling bookings.
+- Updated settings SMTP config forms, pipeline boards, drawer widgets, and Meet detail listings in `src/frontend/index.html`.
+- Wrote and executed built-in `unittest` suite in `app/tests/test_endpoints.py` to verify status flows.
+- Synced all updated codebase files to GitHub (`CaptJack05/screening-`).
 
 ## Model Knowledge
-- **Workspace State**: Entire `docs/` folder hierarchy, root `HANDOFF.md`, and core codebase (`src/backend` and `src/frontend`) are fully tracked. The source repository is synchronized with GitHub.
+- **Workspace State**: Entire codebase (including backend scheduler APIs, SMTP templates, unit tests, and React dashboard layout) is fully operational, registered, and synchronized with GitHub.
 - **Rules Constraint**: Strictly enforce the 4-phase loop for all new requests. Backend agent has no write access to frontend directory and vice versa.
 
 ## Immediate Next Steps
-- Draft the concrete database table DDL schemas (e.g. candidates, evaluations, github_analyses) inside `docs/MASTER/ARCHITECTURE.md` to align with the active SQLite backend models.
-- Set up a dashboard API route mapping and connect frontend UI triggers (such as running the candidate screening pipeline and triggering emails/calendar links).
+- Implement candidate-facing assessment portals allowing candidates to answer logic aptitude/coding questions.
+- Write resume parsing logic using python parsers (e.g. `pdfplumber`, `python-docx`) to automatically extract candidate experience data and trigger AI scoring pipelines.
