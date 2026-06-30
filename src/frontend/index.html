@@ -179,7 +179,7 @@
       return (
         <div class="flex h-screen overflow-hidden bg-slate-950">
           
-          <!-- SIDEBAR -->
+          {/* SIDEBAR */}
           <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between">
             <div>
               <div class="h-16 flex items-center px-6 border-b border-slate-800">
@@ -187,7 +187,7 @@
                 <span class="ml-2 text-xs bg-brand-500/10 text-brand-500 px-2 py-0.5 rounded font-mono border border-brand-500/20">v2.0</span>
               </div>
               
-              <!-- NAVIGATION LINKS -->
+              {/* NAVIGATION LINKS */}
               <nav class="mt-6 px-4 space-y-1">
                 <button 
                   onClick={() => setActiveTab('pipeline')}
@@ -220,7 +220,7 @@
               </nav>
             </div>
 
-            <!-- JOB CONTEXT INDICATOR -->
+            {/* JOB CONTEXT INDICATOR */}
             <div class="p-4 border-t border-slate-800">
               <div class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2">Active Job Context</div>
               {activeJob ? (
@@ -236,7 +236,7 @@
             </div>
           </aside>
 
-          <!-- MAIN WORKSPACE CONTENT -->
+          {/* MAIN WORKSPACE CONTENT */}
           <main class="flex-1 flex flex-col overflow-hidden bg-slate-950">
             <header class="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-slate-900/50 backdrop-blur-md">
               <h2 class="text-lg font-bold text-slate-200 uppercase tracking-wide">
@@ -425,7 +425,7 @@
             <p class="text-slate-400 text-sm mb-6">Auto-detect files. Ingest recruiter spreadsheets directly into database tables.</p>
 
             <form onSubmit={handleUpload} class="space-y-6">
-              <!-- Upload Type Toggle -->
+              {/* Upload Type Toggle */}
               <div>
                 <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Dataset Type</label>
                 <div class="grid grid-cols-2 gap-3">
@@ -468,7 +468,7 @@
                 </div>
               )}
 
-              <!-- File Drag Drop Zone -->
+              {/* File Drag Drop Zone */}
               <div>
                 <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Select Spreadsheet (CSV or Excel)</label>
                 <div class="border-2 border-dashed border-slate-800 rounded-2xl p-8 text-center hover:border-brand-500/50 transition-all bg-slate-950/50 relative">
@@ -494,7 +494,7 @@
                 </div>
               )}
 
-              <!-- Submit Button -->
+              {/* Submit Button */}
               <button 
                 type="submit"
                 disabled={!file || uploading}
@@ -542,7 +542,7 @@
       return (
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           
-          <!-- Submit JD Form -->
+          {/* Submit JD Form */}
           <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 h-fit">
             <h3 class="text-lg font-bold mb-4">Submit Job Description</h3>
             <p class="text-slate-400 text-sm mb-6">Create job evaluation contexts by pasting or submitting job descriptions.</p>
@@ -582,7 +582,7 @@
             </form>
           </div>
 
-          <!-- Existing JDs List -->
+          {/* Existing JDs List */}
           <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
             <h3 class="text-lg font-bold mb-4">Active Job Contexts ({jobs.length})</h3>
             <div class="space-y-4 max-h-[450px] overflow-y-auto pr-2">
@@ -867,7 +867,7 @@
 
       return (
         <div class="fixed inset-y-0 right-0 w-[550px] bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col z-50 animate-in slide-in-from-right duration-300">
-          <!-- Drawer Header -->
+          {/* Drawer Header */}
           <div class="h-16 px-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/80 backdrop-blur">
             <div class="flex items-center gap-3">
               <h3 class="font-bold text-lg text-slate-200 truncate max-w-[300px]">{candidate.name}</h3>
@@ -880,7 +880,7 @@
             </button>
           </div>
 
-          <!-- Drawer Body -->
+          {/* Drawer Body */}
           <div class="flex-1 overflow-y-auto p-6 space-y-6">
             
             {/* Actions & Scheduling Section */}
@@ -946,7 +946,7 @@
               )}
             </div>
 
-            <!-- Basic Details Card -->
+            {/* Basic Details Card */}
             <div class="p-4 bg-slate-950 border border-slate-800 rounded-xl">
               <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Academic & Ingestion</h4>
               <div class="grid grid-cols-2 gap-4 text-sm">
@@ -969,7 +969,7 @@
               </div>
             </div>
 
-            <!-- Ingestion Materials -->
+            {/* Ingestion Materials */}
             <div class="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-4">
               <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Candidate Materials</h4>
               {candidate.resume_drive_link && (
@@ -990,7 +990,7 @@
               )}
             </div>
 
-            <!-- AI Evaluation Summary -->
+            {/* AI Evaluation Summary */}
             <div class="p-4 bg-slate-950 border border-slate-800 rounded-xl">
               <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">AI Evaluation Status</h4>
               {candidate.evaluation ? (
@@ -1004,7 +1004,7 @@
             </div>
           </div>
 
-          <!-- Drawer Footer Action Bar -->
+          {/* Drawer Footer Action Bar */}
           <div class="h-20 px-6 border-t border-slate-800 flex items-center gap-3 bg-slate-900/90">
             <button 
               onClick={handleShortlist}
