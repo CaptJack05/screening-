@@ -1,0 +1,28 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Databases and binary outputs
+*.db
+*.sqlite3
+
+# Environment configurations
+.env
+.venv/
+venv/
+ENV/
+env/
+
+# IDE files
+.vscode/
+.idea/
+.obsidian/
+
+# Log files
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
