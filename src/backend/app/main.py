@@ -11,6 +11,7 @@ from app.api.candidates import router as candidates_router
 from app.api.jobs import router as jobs_router
 from app.api.pipeline import router as pipeline_router
 from app.api.settings import router as settings_router
+from app.api.calendar import router as calendar_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -36,6 +37,7 @@ app.add_middleware(
 
 # Include API Routers
 app.include_router(upload_router)
+app.include_router(calendar_router)
 app.include_router(candidates_router)
 app.include_router(jobs_router)
 app.include_router(pipeline_router)
